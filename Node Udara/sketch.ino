@@ -9,6 +9,10 @@ const char* TOPIC  = "greenhouse/udara/data";   // ganti prefix "greenhouse" jik
 #define LDRPIN 34
 #define FANPIN 2
 
+// Jeda antar pembacaan (ms). DHT22 asli hanya menghasilkan data baru tiap ~2 detik;
+// jika lebih cepat, library mengembalikan nilai terakhir. Di Wokwi aman dipakai 500-1000 ms.
+const unsigned long INTERVAL_MS = 1000;
+
 DHT dht(DHTPIN, DHT22);
 WiFiClient wifi;
 PubSubClient mqtt(wifi);
@@ -19,6 +23,11 @@ int idx = 0, cnt = 0;
 
 float avg(float* b) { float s = 0; for (int i = 0; i < cnt; i++) s += b[i]; return s / cnt; }
 float ramp(float x, float a, float b) { return x <= a ? 0 : x >= b ? 1 : (x - a) / (b - a); }
+
+void pub(const char* sub, const char* v) {      // publish nilai tunggal untuk widget app
+  String t = String("greenhouse/udara/") + sub;
+  mqtt.publish(t.c_str(), v);
+}
 
 void connectAll() {
   if (WiFi.status() != WL_CONNECTED) {
@@ -43,7 +52,7 @@ void loop() {
   mqtt.loop();
 
   float t = dht.readTemperature(), h = dht.readHumidity();
-  if (isnan(t) || isnan(h)) { delay(2000); return; }
+  if (isnan(t) || isnan(h)) { delay(INTERVAL_MS); return; }
   float light = analogRead(LDRPIN) * 100.0 / 4095.0;
 
   // 1) Filtering: moving average
@@ -66,6 +75,13 @@ void loop() {
     "{\"suhu\":%.1f,\"hum\":%.0f,\"cahaya\":%.0f,\"derajat_panas\":%.2f,\"status\":\"%s\",\"kipas\":\"%s\"}",
     T, H, L, panas, status, fan ? "ON" : "OFF");
   mqtt.publish(TOPIC, msg);
+  char b[16];
+  snprintf(b, sizeof(b), "%.1f", T); pub("suhu", b);
+  snprintf(b, sizeof(b), "%.0f", H); pub("hum", b);
+  snprintf(b, sizeof(b), "%.0f", L); pub("cahaya", b);
+  pub("status", status);
+  pub("kipas", fan ? "ON" : "OFF");
   Serial.println(msg);
-  delay(2000);
+  delay(INTERVAL_MS);
 }
+
