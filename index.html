@@ -75,7 +75,8 @@ pre{margin:16px 0 0;background:var(--ink);color:#d9e6cf;padding:12px;border-radi
   <h2>Pompa</h2>
   <div class="row"><span>Status pompa</span><b id="pompa">--</b></div>
   <div class="row"><span>Mode</span><b id="mode">--</b></div>
-  <div class="row"><span>Jam RTC (WIB)</span><b id="jam">--:--</b></div>
+  <div class="row"><span>Jam RTC (WIB)</span><b id="jam">--</b></div>
+  <div class="row"><span>Sumber jam</span><b id="sumber">--</b></div>
   <div class="row"><span>Jendela siram</span><b id="jendela">--</b></div>
   <button data-cmd="POMPA_ON">Pompa nyala</button>
   <button data-cmd="POMPA_OFF">Pompa mati</button>
@@ -126,7 +127,9 @@ c.on("message",(topic,buf)=>{
     $("airst").textContent=low?"HABIS":"TERSEDIA";$("airst").className="badge"+(low?" bad":"");
     $("alert").textContent=d.alert;$("alert").style.color=d.alert==="-"?"":"var(--warn)";
     $("pompa").textContent=d.pompa;$("mode").textContent=d.mode;
-    if(d.jam!==undefined){$("jam").textContent=d.jam;
+    if(d.jam!==undefined){$("jam").textContent=(d.tgl&&d.tgl!=="0000-00-00"?d.tgl+"  ":"")+d.jam;
+      const S={NTP:"Sinkron internet (NTP)",MANUAL:"Manual (diatur di kode)",RTC:"RTC, belum sinkron NTP"};
+      $("sumber").textContent=S[d.sumber_jam]||d.sumber_jam||"--";
       const J={DEMO:"DEMO (jam diabaikan)",BUKA:"BUKA",TUTUP:"TUTUP","JAM?":"RTC tidak terdeteksi"};
       $("jendela").textContent=J[d.jendela]||d.jendela;
       $("jendela").style.color=(d.jendela==="TUTUP"||d.jendela==="JAM?")?"var(--warn)":"";}
@@ -136,4 +139,3 @@ document.querySelectorAll("button").forEach(b=>b.onclick=()=>{c.publish(P+"/kont
 </script>
 </body>
 </html>
-
