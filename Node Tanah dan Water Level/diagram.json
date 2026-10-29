@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "author": "greenhouse",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "soil", "top": -97.3, "left": 191.8, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "us",
+      "top": 126.3,
+      "left": 226.3,
+      "attrs": { "distance": "2" }
+    },
+    { "type": "wokwi-led", "id": "pump", "top": -80, "left": -80, "attrs": { "color": "cyan" } }
+  ],
+  "connections": [
+    [ "esp:3V3", "soil:VCC", "red", [] ],
+    [ "esp:GND.1", "soil:GND", "black", [] ],
+    [ "esp:D34", "soil:SIG", "orange", [] ],
+    [ "esp:VIN", "us:VCC", "red", [] ],
+    [ "esp:GND.1", "us:GND", "black", [] ],
+    [ "esp:D5", "us:TRIG", "green", [] ],
+    [ "esp:D18", "us:ECHO", "purple", [] ],
+    [ "esp:D26", "pump:A", "blue", [] ],
+    [ "esp:GND.2", "pump:C", "black", [] ]
+  ],
+  "dependencies": {}
+}
