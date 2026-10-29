@@ -63,9 +63,11 @@ void loop() {
   // 2) Fuzzy logic: derajat keanggotaan 0..1
   float panas  = ramp(T, 28, 34);
   float lembap = ramp(H, 60, 80);
+  float dingin = 1 - ramp(T, 12, 20);              // 1 pada <=12C, 0 pada >=20C
   float panasLembap = min(panas, lembap);          // aturan AND = min
   const char* status = "NYAMAN";
-  if (panasLembap > 0.5) status = "PANAS-LEMBAP";
+  if (dingin > 0.5)      status = "DINGIN";
+  else if (panasLembap > 0.5) status = "PANAS-LEMBAP";
   else if (panas > 0.5)  status = "PANAS";
   bool fan = panas > 0.5;
   digitalWrite(FANPIN, fan);
@@ -84,4 +86,3 @@ void loop() {
   Serial.println(msg);
   delay(INTERVAL_MS);
 }
-
