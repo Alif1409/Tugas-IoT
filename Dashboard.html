@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Greenhouse Mini</title>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#eef2e6;--ink:#1d2a1c;--mut:#5d6b5a;--card:#fbfcf7;--line:#cdd6c0;--ok:#2f7d3a;--warn:#c4571a;--acc:#1f5f4a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Georgia,"Times New Roman",serif;padding:24px}
+main{max-width:920px;margin:auto}
+h1{font-size:2rem;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 20px}
+.conn{display:inline-block;padding:2px 10px;border-radius:99px;border:1px solid var(--line);font:14px system-ui,sans-serif;margin-left:8px}
+.conn.on{color:var(--ok);border-color:var(--ok)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px}
+h2{font-size:1.15rem;margin:0 0 12px}
+.big{font-size:2.6rem;line-height:1}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}
+.row span:first-child{color:var(--mut)}
+.badge{font:600 14px system-ui,sans-serif;padding:3px 10px;border-radius:4px;background:#dfeccf;color:var(--ok)}
+.badge.bad{background:#f7dccb;color:var(--warn)}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:8px 0 12px}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .4s}
+button{font:15px system-ui,sans-serif;padding:8px 14px;margin:4px 6px 0 0;border:1px solid var(--acc);background:#fff;color:var(--acc);border-radius:4px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--acc);color:#fff;outline:none}
+.chart{position:relative;height:170px;margin-top:14px}
+pre{margin:16px 0 0;background:var(--ink);color:#d9e6cf;padding:12px;border-radius:6px;height:150px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,monospace}
+</style>
+</head>
+<body>
+<main>
+<h1>Greenhouse Mini <span id="conn" class="conn">terputus</span></h1>
+<p class="sub">Data langsung dari dua ESP32 lewat MQTT (WebSocket).</p>
+<div class="grid">
+  <section>
+    <h2>Udara</h2>
+    <div class="big"><span id="suhu">--</span>°C</div>
+    <p>Status: <span id="status" class="badge">--</span></p>
+    <div class="row"><span>Kelembapan</span><b><span id="hum">--</span>%</b></div>
+    <div class="row"><span>Cahaya</span><b><span id="cahaya">--</span>%</b></div>
+    <div class="row"><span>Derajat panas (fuzzy)</span><b id="dp">--</b></div>
+    <div class="row"><span>Kipas</span><b id="kipas">--</b></div>
+    <div class="chart"><canvas id="cUdara"></canvas></div>
+  </section>
+  <section>
+    <h2>Kelembapan tanah</h2>
+    <div class="big"><span id="soil">--</span>%</div>
+    <div class="bar"><i id="soilbar"></i></div>
+    <p>Kondisi: <span id="soilst" class="badge">--</span></p>
+    <div class="row"><span>Ambang kering</span><b>30%</b></div>
+    <div class="row"><span>Prediksi kering</span><b id="pred">--</b></div>
+    <div class="chart"><canvas id="cSoil"></canvas></div>
+  </section>
+  <section>
+    <h2>Level air tandon</h2>
+    <div class="big"><span id="air">--</span> cm</div>
+    <div class="bar"><i id="airbar"></i></div>
+    <p>Kondisi: <span id="airst" class="badge">--</span></p>
+    <div class="row"><span>Batas minimum</span><b>5 cm</b></div>
+    <div class="row"><span>Peringatan</span><b id="alert">--</b></div>
+    <div class="chart"><canvas id="cAir"></canvas></div>
+  </section>
+</div>
+<section style="margin-top:16px">
+  <h2>Pompa</h2>
+  <div class="row"><span>Status pompa</span><b id="pompa">--</b></div>
+  <div class="row"><span>Mode</span><b id="mode">--</b></div>
+  <button data-cmd="POMPA_ON">Pompa nyala</button>
+  <button data-cmd="POMPA_OFF">Pompa mati</button>
+  <button data-cmd="AUTO">Kembali otomatis</button>
+  <pre id="log"></pre>
+</section>
+</main>
+<script>
+const BROKER="wss://broker.hivemq.com:8884/mqtt", P="greenhouse"; // samakan dengan prefix di kode ESP32
+const $=id=>document.getElementById(id), log=$("log");
+function addLog(t){log.textContent+=new Date().toLocaleTimeString()+"  "+t+"\n";log.scrollTop=log.scrollHeight}
+const c=mqtt.connect(BROKER,{clientId:"gh-dash-"+Math.random().toString(16).slice(2,8)});
+c.on("connect",()=>{$("conn").textContent="terhubung";$("conn").className="conn on";c.subscribe([P+"/udara/data",P+"/tanah/data"])});
+c.on("close",()=>{$("conn").textContent="terputus";$("conn").className="conn"});
+const MAXP=60;
+function mk(id,sets,min,max){
+  return new Chart($(id),{type:"line",
+    data:{labels:[],datasets:sets.map(x=>({label:x.l,data:[],borderColor:x.c,backgroundColor:x.c,borderWidth:x.dash?1.5:2,borderDash:x.dash?[5,4]:[],pointRadius:0,tension:.25}))},
+    options:{animation:false,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      scales:{y:{min,max,grid:{color:"#dfe5d3"}},x:{ticks:{maxTicksLimit:5,maxRotation:0},grid:{display:false}}},
+      plugins:{legend:{labels:{boxWidth:12,usePointStyle:true}}}}});
+}
+function addPt(ch,vals){
+  ch.data.labels.push(new Date().toLocaleTimeString());
+  vals.forEach((v,i)=>ch.data.datasets[i].data.push(v));
+  if(ch.data.labels.length>MAXP){ch.data.labels.shift();ch.data.datasets.forEach(d=>d.data.shift())}
+  ch.update();
+}
+const cU=mk("cUdara",[{l:"Suhu (°C)",c:"#c4571a"},{l:"Kelembapan (%)",c:"#1f5f4a"}],0,100);
+const cS=mk("cSoil",[{l:"Kelembapan tanah (%)",c:"#5a7d2a"},{l:"Ambang kering",c:"#8a8f80",dash:1}],0,100);
+const cA=mk("cAir",[{l:"Level air (cm)",c:"#2a6f9e"},{l:"Batas minimum",c:"#8a8f80",dash:1}],0,25);
+c.on("message",(topic,buf)=>{
+  let d;try{d=JSON.parse(buf.toString())}catch{return}
+  addLog(topic.replace(P+"/","")+" "+buf);
+  if(topic.endsWith("udara/data")){
+    $("suhu").textContent=d.suhu;$("hum").textContent=d.hum;$("cahaya").textContent=d.cahaya;
+    addPt(cU,[d.suhu,d.hum]);$("dp").textContent=d.derajat_panas;$("kipas").textContent=d.kipas;
+    $("status").textContent=d.status;$("status").className="badge"+(d.status==="NYAMAN"?"":" bad");
+  }else{
+    addPt(cS,[d.soil,30]);addPt(cA,[d.air_cm,5]);$("soil").textContent=d.soil;$("soilbar").style.width=d.soil+"%";
+    const dry=d.soil<30;
+    $("soilst").textContent=dry?"KERING":"CUKUP BASAH";$("soilst").className="badge"+(dry?" bad":"");
+    $("pred").textContent=d.prediksi_kering_menit<0?"stabil":d.prediksi_kering_menit+" menit";
+    $("air").textContent=d.air_cm;$("airbar").style.width=Math.min(100,d.air_cm/25*100)+"%";
+    const low=d.air_cm<=5;
+    $("airst").textContent=low?"HABIS":"TERSEDIA";$("airst").className="badge"+(low?" bad":"");
+    $("alert").textContent=d.alert;$("alert").style.color=d.alert==="-"?"":"var(--warn)";
+    $("pompa").textContent=d.pompa;$("mode").textContent=d.mode;
+  }
+});
+document.querySelectorAll("button").forEach(b=>b.onclick=()=>{c.publish(P+"/kontrol",b.dataset.cmd);addLog("kirim kontrol: "+b.dataset.cmd)});
+</script>
+</body>
+</html>
+
