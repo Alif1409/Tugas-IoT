@@ -4,19 +4,32 @@
   "editor": "wokwi",
   "parts": [
     { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-dht22", "id": "dht", "top": -90, "left": 190, "attrs": {} },
-    { "type": "wokwi-photoresistor-sensor", "id": "ldr", "top": 128, "left": 231.2, "attrs": {} },
-    { "type": "wokwi-led", "id": "fan", "top": -80, "left": -80, "attrs": { "color": "blue" } }
+    { "type": "wokwi-potentiometer", "id": "soil", "top": -100, "left": 190, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "us",
+      "top": 173.3,
+      "left": 237.3,
+      "rotate": 180,
+      "attrs": { "distance": "10" }
+    },
+    { "type": "wokwi-led", "id": "pump", "top": -80, "left": -80, "attrs": { "color": "cyan" } },
+    { "type": "wokwi-ds1307", "id": "rtc", "top": -24.6, "left": 326.5, "attrs": {} }
   ],
   "connections": [
-    [ "esp:3V3", "dht:VCC", "red", [] ],
-    [ "esp:GND.1", "dht:GND", "black", [] ],
-    [ "esp:D15", "dht:SDA", "green", [] ],
-    [ "esp:3V3", "ldr:VCC", "red", [] ],
-    [ "esp:GND.1", "ldr:GND", "black", [] ],
-    [ "esp:D34", "ldr:AO", "orange", [] ],
-    [ "esp:D2", "fan:A", "blue", [] ],
-    [ "esp:GND.2", "fan:C", "black", [] ]
+    [ "esp:3V3", "soil:VCC", "red", [] ],
+    [ "esp:GND.1", "soil:GND", "black", [] ],
+    [ "esp:D34", "soil:SIG", "orange", [] ],
+    [ "esp:VIN", "us:VCC", "red", [] ],
+    [ "esp:GND.1", "us:GND", "black", [] ],
+    [ "esp:D5", "us:TRIG", "green", [] ],
+    [ "esp:D18", "us:ECHO", "purple", [] ],
+    [ "esp:D26", "pump:A", "blue", [] ],
+    [ "esp:GND.2", "pump:C", "black", [] ],
+    [ "esp:GND.1", "rtc:GND", "black", [] ],
+    [ "esp:D21", "rtc:SDA", "green", [] ],
+    [ "esp:D22", "rtc:SCL", "blue", [] ],
+    [ "esp:VIN", "rtc:5V", "red", [] ]
   ],
   "dependencies": {}
 }
