@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "author": "greenhouse",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht", "top": -90, "left": 190, "attrs": {} },
+    { "type": "wokwi-photoresistor-sensor", "id": "ldr", "top": 128, "left": 231.2, "attrs": {} },
+    { "type": "wokwi-led", "id": "fan", "top": -80, "left": -80, "attrs": { "color": "blue" } }
+  ],
+  "connections": [
+    [ "esp:3V3", "dht:VCC", "red", [] ],
+    [ "esp:GND.1", "dht:GND", "black", [] ],
+    [ "esp:D15", "dht:SDA", "green", [] ],
+    [ "esp:3V3", "ldr:VCC", "red", [] ],
+    [ "esp:GND.1", "ldr:GND", "black", [] ],
+    [ "esp:D34", "ldr:AO", "orange", [] ],
+    [ "esp:D2", "fan:A", "blue", [] ],
+    [ "esp:GND.2", "fan:C", "black", [] ]
+  ],
+  "dependencies": {}
+}
