@@ -26,6 +26,7 @@ h2{font-size:1.3rem;font-weight:500;margin:0 0 12px}
 .row{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}
 .row span:first-child{color:var(--mut)}
 .badge{font:600 14px "Nunito",system-ui,sans-serif;padding:3px 10px;border-radius:4px;background:#dfeccf;color:var(--ok);border-radius:99px}
+.badge.crit{background:var(--warn);color:#fff}
 .badge.bad{background:#f7dccb;color:var(--warn)}
 .bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:8px 0 12px}
 .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .4s}
@@ -56,6 +57,7 @@ pre{margin:16px 0 0;background:var(--ink);color:#d9e6cf;padding:12px;border-radi
     <div class="bar"><i id="soilbar"></i></div>
     <p>Kondisi: <span id="soilst" class="badge">--</span></p>
     <div class="row"><span>Ambang kering</span><b>30%</b></div>
+    <div class="row"><span>Ambang sangat kering</span><b>15%</b></div>
     <div class="row"><span>Prediksi kering</span><b id="pred">--</b></div>
     <div class="chart"><canvas id="cSoil"></canvas></div>
   </section>
@@ -115,8 +117,9 @@ c.on("message",(topic,buf)=>{
     $("status").textContent=d.status;$("status").className="badge"+(d.status==="NYAMAN"?"":" bad");
   }else{
     addPt(cS,[d.soil,30]);addPt(cA,[d.air_cm,5]);$("soil").textContent=d.soil;$("soilbar").style.width=d.soil+"%";
-    const dry=d.soil<30;
-    $("soilst").textContent=dry?"KERING":"CUKUP BASAH";$("soilst").className="badge"+(dry?" bad":"");
+    const crit=d.soil<15,dry=d.soil<30;
+    $("soilst").textContent=crit?"SANGAT KERING":dry?"KERING":"CUKUP BASAH";
+    $("soilst").className="badge"+(crit?" crit":dry?" bad":"");
     $("pred").textContent=d.prediksi_kering_menit<0?"stabil":d.prediksi_kering_menit+" menit";
     $("air").textContent=d.air_cm;$("airbar").style.width=Math.min(100,d.air_cm/25*100)+"%";
     const low=d.air_cm<=5;
